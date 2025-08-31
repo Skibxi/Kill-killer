@@ -1,0 +1,95 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+local looping = false -- Control variable for loop
+
+if not humanoidRootPart then return end
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+local button = Instance.new("TextButton", screenGui)
+
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.8, 0)
+button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+button.TextColor3 = Color3.fromRGB(0, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 18
+button.Text = "Kill Killer"
+button.BorderSizePixel = 0
+
+-- Find closest player's head
+local function getClosestPlayerHead()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local head = otherPlayer.Character:FindFirstChild("Head")
+            if head then
+                local distance = (humanoidRootPart.Position - head.Position).magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = head
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Auto Touch Fling (always running)
+coroutine.wrap(function()
+    local RunService = game:GetService("RunService")
+    local lp = game.Players.LocalPlayer
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
+
+    while true do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
+end)()
+
+-- Send notification safely
+local function sendNotification()
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Notification";
+            Text = "Made by Hecker";
+            Duration = 3;
+        })
+    end)
+end
+
+-- Loop teleport to head function
+local function loopGoto()
+    looping = not looping
+    if looping then
+        button.Text = "Stop"
+        sendNotification() -- Ensure notification appears
+        while looping do
+            local targetHead = getClosestPlayerHead()
+            if targetHead then
+                humanoidRootPart.CFrame = targetHead.CFrame
+            end
+            task.wait(0.1) -- Teleport every 0.1s
+        end
+    else
+        button.Text = "Kill Killer"
+    end
+end
+
+-- Button function
+button.MouseButton1Click:Connect(loopGoto)
